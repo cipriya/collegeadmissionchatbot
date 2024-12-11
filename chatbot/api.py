@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from chatbot.bot import CollegeAdmissionChatbot
+import os
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(__name__, template_folder="../frontend")
 
 # Load chatbot
 chatbot = CollegeAdmissionChatbot(
@@ -11,29 +12,22 @@ chatbot = CollegeAdmissionChatbot(
     log_path='logs/chatbot_logs.jsonl'
 )
 
+# Serve the chatbot UI
+@app.route('/', methods=['GET'])
+def index():
+    return render_template("index.html")
+
+# Chatbot API endpoint
 @app.route('/api/chat', methods=['POST'])
 def chat():
+    user_query = request.json.get('query', '')
+    
+    if not user_query:
+        return jsonify({"error": "Query cannot be empty"}), 400
+    
     try:
-        # Parse user query from the request
-        user_query = request.json.get('query', '')
-        if not user_query:
-            return jsonify({"error": "Query cannot be empty"}), 400
-        
-        # Process query and get chatbot response
         bot_response = chatbot.process_query(user_query)
         return jsonify({"query": user_query, "response": bot_response})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/logs', methods=['GET'])
-def get_logs():
-    try:
-        # Fetch interaction logs
-        with open('logs/chatbot_logs.jsonl', 'r') as f:
-            logs = [json.loads(line) for line in f.readlines()]
-        return jsonify(logs)
-    except FileNotFoundError:
-        return jsonify({"error": "No logs found"}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

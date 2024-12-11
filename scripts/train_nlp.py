@@ -8,30 +8,21 @@ import os
 def preprocess_dataset(dataset_path):
     with open(dataset_path, 'r') as f:
         data = json.load(f)["dataset"]
-    
-    questions = []
-    intents = []
-    
+    questions, intents = [], []
     for item in data:
         category = item["Category"]
         for question in item["User Questions"]:
-            questions.append(question.lower())  # Normalize to lowercase
+            questions.append(question.lower())
             intents.append(category)
-    
     return questions, intents
 
 def train_intent_model(dataset_path, model_output_path):
     questions, intents = preprocess_dataset(dataset_path)
-    
-    # NLP pipeline
     model = Pipeline([
-        ('vectorizer', CountVectorizer(ngram_range=(1, 2))),  # Capture context with bigrams
+        ('vectorizer', CountVectorizer(ngram_range=(1, 2))),
         ('classifier', LogisticRegression(max_iter=1000))
     ])
-    
     model.fit(questions, intents)
-    
-    # Save the model
     os.makedirs(os.path.dirname(model_output_path), exist_ok=True)
     joblib.dump(model, model_output_path)
     print(f"Model saved at {model_output_path}")
